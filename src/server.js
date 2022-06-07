@@ -1,6 +1,7 @@
 import http from "http";
 import express from "express";
 import WebSocket from "ws";
+import { json } from "express/lib/response";
 const app = express();
 
 app.set(`view engine`, "pug");
@@ -36,19 +37,35 @@ wss.on("connection", (backsocket) => {
   //각 브라우저 연결이 될때마다 저장이 됨 , 연결된 브라우저마다 뿌려줌
   sockets.push(backsocket);
 
+  //브라우저마다 각 최초접속시 Anon이라는 닉네임 부여
+  //socket안에 정보를 저장할 수 있음
+  backsocket["nick"] = "Anon";
+
   //브라우저 창을 닫을 시 발생하는 이벤트
   backsocket.on("close", () => {
     console.log("disconnected from browser");
   });
   console.log(sockets);
+
   //frontedn로 메세지 보내기
   //backsocket.send("hello");
+  backsocket.on("message", (msg) => {
+    const message = JSON.parse(msg);
 
-  backsocket.on("message", (message) => {
-    // console.log(message.toString("utf8"));
-    // backsocket.send(message.toString("utf8"));
+    console.log(message);
+    switch (message.type) {
+      case "new_message":
+        sockets.forEach((asocket) =>
+          asocket.send(`${backsocket.nick} : ${message.payload}`)
+        );
+        break;
+      case "nick":
+        console.log(message.payload);
+        backsocket["nick"] = message.payload;
+        console.log(backsocket.nick);
+        break;
+    }
     // 모든 socket을 거쳐서 해당하는 브라우저가 보낸 메세지를 다시 보냄
-    sockets.forEach((asocket) => asocket.send(message.toString("utf8")));
   });
 });
 
