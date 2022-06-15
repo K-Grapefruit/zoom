@@ -1,50 +1,17 @@
-//fontend에서 backend로 연결하는 방법
-const messageList = document.querySelector("ul");
-const nickForm = document.querySelector("#nick");
-const messageForm = document.querySelector("#message");
-const frontsocket = new WebSocket(`ws://${window.location.host}`);
+//import 하지 않는 이유 -> io function은 알아서 socket.io를 실행하고 있는 서버를 찾기 때문
+const frontsocket = io();
+const welcome = document.getElementById("welcome");
+const form = welcome.querySelector("form");
 
-frontsocket.addEventListener("open", () => {
-  //socket이 connection에 open했을때 발생
-
-  console.log("Connected to Server ❤");
-});
-
-//server에서 메세지가 올 경우 응답
-frontsocket.addEventListener("message", (message) => {
-  const li = document.createElement("li");
-  li.innerText = message.data;
-  messageList.append(li);
-});
-
-frontsocket.addEventListener("close", () => {
-  console.log("Disconneted");
-});
-
-//socket.send는 String 타입으로 전송이 되기때문에 OBJECT형태로 만들어준 후 STRING으로 변환
-function makeMessage(type, payload) {
-  const msg = { type, payload };
-  return JSON.stringify(msg);
+function handleFrontend(msg) {
+  console.log(`DM by backend : ${msg}`);
 }
 
-// setTimeout(() => {
-//   //frontend에서 backend로 메세지 보내기
-//   frontsocket.send("hello from the browser!");
-// }, 10000);
-
-function handleSubmit(event) {
+function handleroomSubmit(event) {
   event.preventDefault();
-  const input = messageForm.querySelector("input");
-  frontsocket.send(makeMessage("new_message", input.value));
+  const input = form.querySelector("input");
+  frontsocket.emit("enter_room", { payload: input.value }, handleFrontend);
   input.value = "";
 }
 
-function handlenickSubmit(event) {
-  event.preventDefault();
-  const input = nickForm.querySelector("input");
-  frontsocket.send(makeMessage("nick", input.value));
-  input.value = "";
-}
-
-messageForm.addEventListener("submit", handleSubmit);
-nickForm.addEventListener("submit", handlenickSubmit);
+form.addEventListener("submit", handleroomSubmit);
