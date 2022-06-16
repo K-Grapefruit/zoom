@@ -22,11 +22,25 @@ const server = http.createServer(app);
 const io = SocketIO(server);
 
 io.on("connection", (backsocket) => {
-  backsocket.on("enter_room", (msg, done) => {
-    console.log(msg);
-    setTimeout(() => {
-      done("here is backend");
-    }, 5000);
+  backsocket.onAny((event) => {
+    console.log(`got ${event}`);
+  });
+
+  backsocket.on("enter_room", (room_name, done) => {
+    backsocket.join(room_name);
+    done();
+    //이 방에 들어온 모든 인원들에게 메세지를 보냄 ( 나를 제외한 )
+    backsocket.to(room_name).emit("welcome");
+  });
+
+  //연결이 끊어졌을때
+  backsocket.on("disconnecting", () => {
+    backsocket.rooms.forEach((room) => backsocket.to(room).emit("bye"));
+  });
+
+  backsocket.on("new_message", (msg, roomname, sendmsg) => {
+    backsocket.to(roomname).emit("new_message", msg);
+    sendmsg();
   });
 });
 /* WebSocket서버
